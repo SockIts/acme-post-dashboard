@@ -44,9 +44,9 @@ RB = os.environ.get('RELAY_BASE', '').strip().rstrip('/')
 RT = os.environ.get('RELAY_TOKEN', '').strip()
 rep("API_BASE:'',API_TOKEN:''", "API_BASE:" + json.dumps(RB) + ",API_TOKEN:" + json.dumps(RT))
 # Lock button + cross-tab sync
-rep("window.__dash={load,", """window.addEventListener('storage',e=>{if(e.key&&e.key.indexOf(PFX)===0)refresh()});
+rep("window.__dash={", """window.addEventListener('storage',e=>{if(e.key&&e.key.indexOf(PFX)===0)refresh()});
 $('#lock-btn').onclick=()=>{try{localStorage.removeItem('acme-pages-key')}catch(e){}location.reload()};
-window.__dash={load,""")
+window.__dash={""")
 for bad in ('Due now', 'due-bar', 'dueOf', 'Scheduling not active'):
     if bad in html:
         sys.exit('leftover scheduling wording in the page: ' + bad)
