@@ -1,0 +1,14 @@
+# never commit anything unencrypted
+*.env
+.env*
+node_modules/
+__pycache__/
+dashboard*.html
+acme-post-dashboard.html
+data.json
+assets/
+previews/
+shots/
+*.png
+*.gif
+!tests/**/*.png

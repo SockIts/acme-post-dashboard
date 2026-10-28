@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>ACME Content Dashboard · sign in</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0d1117;color:#e6edf3;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;display:flex;flex-direction:column}
+.testbar{background:#3a2c0b;border-bottom:2px solid #e3b341;color:#ffd666;font-size:13.5px;font-weight:600;padding:8px 20px;text-align:center}
+.wrap{flex:1;display:grid;place-items:center;padding:24px}
+.box{width:100%;max-width:400px;background:#161b22;border:1px solid #2a3340;border-radius:14px;padding:26px}
+.logo{width:42px;height:42px;border-radius:50%;background:#f7931a;color:#000;display:grid;place-items:center;font-weight:800;margin-bottom:10px}
+h1{font-size:20px;margin:0 0 4px}.mu{color:#8b98a8;font-size:13px}
+input[type=password]{width:100%;margin:16px 0 10px;background:#0d1117;border:1px solid #2a3340;border-radius:8px;color:#e6edf3;padding:10px 12px;font-size:15px}
+input[type=password]:focus{outline:2px solid #f7931a;border-color:#f7931a}
+label.r{display:flex;gap:7px;align-items:center;font-size:13px;color:#8b98a8;margin-bottom:14px;cursor:pointer}
+button{width:100%;background:#f7931a;border:0;border-radius:8px;color:#000;font-weight:700;font-size:15px;padding:10px;cursor:pointer}button:disabled{opacity:.6;cursor:wait}
+#err{color:#ff7b72;font-size:13.5px;margin-top:12px;min-height:20px}
+#nojs{color:#ff7b72}
+</style></head><body>
+<div class="testbar">Test mode: nothing is posted automatically</div>
+<div class="wrap"><form class="box" id="f" autocomplete="off">
+<div class="logo">A</div><h1>ACME Content Dashboard</h1>
+<div class="mu">Private team preview. Enter the shared password to unlock. The dashboard is encrypted and opens in your browser only; nothing is sent to a server.</div>
+<input type="password" id="pw" placeholder="Password" autocomplete="current-password" aria-label="Password" autofocus required>
+<label class="r"><input type="checkbox" id="rem"> Remember me on this browser</label>
+<button type="submit" id="go">Unlock</button>
+<div id="err" role="alert" aria-live="polite"></div>
+<noscript><div id="nojs">JavaScript is required to decrypt the dashboard.</div></noscript>
+</form></div>
+<script type="application/json" id="blob">/*BLOB*/</script>
+<script>
+(()=>{
+const $=s=>document.querySelector(s),KEYSLOT='acme-pages-key';
+const b64=s=>{const a=atob(s),u=new Uint8Array(a.length);for(let i=0;i<a.length;i++)u[i]=a.charCodeAt(i);return u};
+const B=JSON.parse($('#blob').textContent);
+async function gunzip(buf){return await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text()}
+async function open(key){
+  const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(B.iv)},key,b64(B.ct)); // throws on a wrong key
+  const html=await gunzip(plain);
+  document.open();document.write(html);document.close();
+}
+async function derive(pw,extractable){
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(B.salt),iterations:B.iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},extractable,['decrypt']);
+}
+async function tryStored(){
+  let j;try{j=localStorage.getItem(KEYSLOT)}catch(e){}
+  if(!j)return;
+  try{const k=await crypto.subtle.importKey('raw',b64(j),'AES-GCM',false,['decrypt']);$('#err').textContent='Unlocking…';await open(k)}
+  catch(e){try{localStorage.removeItem(KEYSLOT)}catch(_){}$('#err').textContent=''}
+}
+$('#f').addEventListener('submit',async e=>{
+  e.preventDefault();const go=$('#go'),err=$('#err'),pw=$('#pw').value;err.textContent='';
+  if(!crypto.subtle){err.textContent='This browser cannot decrypt here (Web Crypto needs https).';return}
+  go.disabled=true;go.textContent='Decrypting…';
+  try{
+    const key=await derive(pw,true);
+    let raw=null;if($('#rem').checked)raw=new Uint8Array(await crypto.subtle.exportKey('raw',key));
+    // verify the key before touching the page (wrong password throws here, nothing is rendered)
+    await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(B.iv)},key,b64(B.ct));
+    if(raw){let s='';raw.forEach(c=>s+=String.fromCharCode(c));try{localStorage.setItem(KEYSLOT,btoa(s))}catch(_){}}
+    await open(key);
+  }catch(ex){
+    go.disabled=false;go.textContent='Unlock';$('#pw').value='';$('#pw').focus();
+    err.textContent=(ex&&ex.name==='OperationError')?'Wrong password. Try again.':'Could not open the dashboard ('+(ex&&ex.message||ex)+')';
+  }
+});
+tryStored();
+})();
+</script></body></html>
