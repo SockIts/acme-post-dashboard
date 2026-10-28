@@ -25,7 +25,7 @@ const unlock=async(pw,rem)=>{await ev(`document.querySelector('#pw').value=${JSO
 const K='2026-10-30__technical';
 // ---- login page + wrong password
 await go(BASE);
-ok('login page shown with test-mode banner',(await ev('document.querySelector(".testbar").innerText')).includes('Test mode: nothing is posted automatically'));
+ok('login page shown with test-mode banner',(await ev('document.querySelector(".testbar").innerText')).includes('Test mode: drafts only. Nothing is posted automatically.'));
 ok('remember me is OFF by default',await ev('document.querySelector("#rem").checked===false'));
 ok('no dashboard content before unlock',await ev('!document.querySelector(".card,.slot,#sec-cards")'));
 await shot('login.png',1000,700,false);
@@ -37,9 +37,11 @@ await shot('login_wrong_password.png',1000,700,false);
 t0=Date.now();await unlock(PW,false);
 ok('correct password unlocks dashboard (11 MB payload)',await waitFor(`!!window.__dash&&document.querySelectorAll('.slot').length>=12`),(Date.now()-t0)+' ms');
 ok('12 cards rendered',(await ev(`document.querySelectorAll('.slot').length`))===12);
-ok('"Test mode" banner on dashboard',(await ev('document.querySelector(".testbar").innerText')).includes('nothing is posted automatically'));
-ok('static-site note visible (exact text)',(await ev('document.querySelector("#static-note").innerText')).includes('Static test site: Approved, Post Date and comments are saved in this browser only. Use Export comments to share.'));
-ok('no "scheduling not active" leftovers',!(await ev('document.body.innerText')).toLowerCase().includes('scheduling not active'));
+ok('"Test mode" banner on dashboard',(await ev('document.querySelector(".testbar").innerText')).includes('Nothing is posted automatically'));
+ok('new Drafts-only wording present',(await ev('document.querySelector("#static-note").innerText')).includes('Drafts only: nothing is posted automatically. After posting on X, tick Posted and paste the link.'));
+ok('static-site note visible (exact text)',(await ev('document.querySelector("#static-note").innerText')).includes('Static test site: Posted links, comments and requests are saved in this browser only. Use Export comments to share.'));
+ok('no scheduling / Due now / Approved checkbox / date pickers left',await ev(`!document.querySelector('input.ap,input.pdate,#due-bar,.sched-tag')&&!/Due now|Post Date|scheduling not active/i.test(document.body.innerText)`));
+ok('header chips (All + 11) + Generate button + Offline pill present',await ev(`!!document.getElementById('gen-btn')&&document.querySelectorAll('.fchip').length===12&&document.getElementById('conn').textContent==='Offline (copy mode)'`));
 ok('all images loaded (none broken)',await ev(`[...document.images].filter(i=>i.id!=='lb-img').every(i=>i.complete&&i.naturalWidth>0)`),await ev('(document.images.length-1)+" images (lightbox placeholder excluded)"'));
 ok('localStorage remember key not stored (remember off)',(await ev(`localStorage.getItem('acme-pages-key')`))===null);
 await shot('dashboard_unlocked.png',1440,900,false);
@@ -54,38 +56,35 @@ ok('Copy full thread button present',await ev(`!!document.querySelector('#panel 
 ok('Export comments works',(await ev(`document.getElementById('export').click();document.getElementById('ex-t').value`)).startsWith('ACME Content Dashboard: comments export'));
 await ev(`document.getElementById('ex-close').click()`);
 await shot('dashboard_thread_expanded.png',1440,900,true);
-// ---- persistence: Approved / Post Date / comment
-await ev(`(()=>{const s=document.querySelector('.slot[data-key="${K}"]');const cb=s.querySelector('input.ap');cb.checked=true;cb.dispatchEvent(new Event('change',{bubbles:true}))})()`);
-await ev(`(()=>{const s=document.querySelector('.slot[data-key="${K}"]');const d=s.querySelector('input.pdate');d.value='2099-12-31T16:45';d.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+// ---- Posted + link, chips, generate panel, persistence
+const X1='https://x.com/ACMEonBTC/status/1234567890123456789';
+const slot=k=>`document.querySelector('.slot[data-key="${k}"]')`;
+const change=(sel)=>ev(`(()=>{const e=document.querySelector(${JSON.stringify(sel)});e.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+await ev(`(()=>{const c=${slot(K)}.querySelector('input.pst');c.checked=true;c.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+ok('Posted without a link is refused ("Paste the post link")',await ev(`!${slot(K)}.querySelector('input.pst').checked&&${slot(K)}.querySelector('.perr').textContent==='Paste the post link'&&!${slot(K)}.querySelector('.perr').hidden`));
+await ev(`(()=>{const i=${slot(K)}.querySelector('input.purl');i.value='https://example.com/status/12';i.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+ok('non-X link is rejected',await ev(`!${slot(K)}.querySelector('.perr').hidden&&!window.__dash.load('${K}').postUrl`));
+await ev(`(()=>{const i=${slot(K)}.querySelector('input.purl');i.value='${X1}';i.dispatchEvent(new Event('change',{bubbles:true}));const c=${slot(K)}.querySelector('input.pst');c.checked=true;c.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+ok('valid x.com link + Posted: green outline, Posted tag, View on X link',await ev(`(()=>{const s=${slot(K)},a=s.querySelector('.posted-tag a.vx');return s.classList.contains('posted')&&a&&a.href==='${X1}'&&getComputedStyle(s).boxShadow.includes('63, 185, 80')})()`));
 await ev(`window.__dash.openCard('${K}',false)`);await sleep(400);
-await ev(`(()=>{const c=document.getElementById('c-${K}');c.querySelector('textarea').value='Persisted test comment';c.querySelector('button.save').click()})()`);
-ok('future date is NOT due',await ev(`!window.__dash.dueOf('${K}')&&document.getElementById('due-bar').hidden`));
+await ev(`(()=>{const c=document.getElementById('c-${K}');c.querySelector('textarea.cm-t').value='Persisted test comment';c.querySelector('button.save').click()})()`);
+ok('expanded card shows the same Posted + link',await ev(`(()=>{const c=document.querySelector('#panel .card[data-key="${K}"]');return c.querySelector('input.pst').checked&&c.querySelector('input.purl').value==='${X1}'})()`));
+ok('Posted chip filters to the posted card; counts match',await ev(`(()=>{document.querySelector('.fchip[data-g="state"][data-v="posted"]').click();const v=document.querySelectorAll('.slot:not(.hid)').length,n=document.querySelector('.fchip[data-g="state"][data-v="posted"] b').textContent;document.getElementById('chip-all').click();return v===1&&n==='1'&&document.querySelectorAll('.slot:not(.hid)').length===12})()`));
+await ev(`document.getElementById('gen-btn').click()`);
+await ev(`(()=>{const n=document.getElementById('gen-notes');n.value='pages test notes';n.dispatchEvent(new Event('input',{bubbles:true}));document.getElementById('gen-go').click()})()`);await sleep(400);
+const rq=await ev(`document.getElementById('gen-req').value`);
+ok('Generate panel builds "Generate 3 new posts for <date>, notes: ..., types: ..."',/^Generate 3 new posts for \d{4}-\d{2}-\d{2}, notes: pages test notes, types: /.test(rq),rq.split('\n')[0]);
+ok('"Requested – waiting for agent" placeholder card appears',await ev(`!!document.querySelector('#req-list .rslot')&&document.querySelector('#req-list').innerText.includes('Requested – waiting for agent')`));
+ok('no relay configured -> copy mode, no network calls to a relay',await ev(`window.__dash.config.API_BASE===''&&window.__dash.config.API_TOKEN===''`));
+await shot('dashboard_generate.png',1440,900,false);
 await go(BASE);
 ok('after reload: login page again (no plaintext persisted)',await ev('!!document.querySelector("#pw")&&!document.querySelector(".card")'));
 await unlock(PW,false);await waitFor(`!!window.__dash`);
-const p=await ev(`(()=>{const o=window.__dash.load('${K}');return JSON.stringify({a:o.approved,p:o.postDate,c:(o.comments||[]).map(c=>c.text)})})()`);
-ok('Approved/Post Date/comment persisted across reload + re-decrypt',p===JSON.stringify({a:true,p:'2099-12-31T16:45',c:['Persisted test comment']}),p);
-ok('UI reflects persisted state',await ev(`(()=>{const s=document.querySelector('.slot[data-key="${K}"]');return s.querySelector('input.ap').checked&&s.querySelector('input.pdate').value==='2099-12-31T16:45'&&s.querySelector('.sched-tag').innerText.includes('Scheduled')})()`));
-// ---- Due now: past date
-const K2='2026-10-29__highlight';
-await ev(`(()=>{const s=document.querySelector('.slot[data-key="${K2}"]');const cb=s.querySelector('input.ap');cb.checked=true;cb.dispatchEvent(new Event('change',{bubbles:true}));const d=s.querySelector('input.pdate');d.value='2026-10-28T08:00';d.dispatchEvent(new Event('change',{bubbles:true}))})()`);
-await sleep(500);
-ok('past Post Date -> red Due now bar visible',await ev(`!document.getElementById('due-bar').hidden&&document.getElementById('due-list').children.length===1`));
-ok('tab title shows (1 DUE)',(await ev('document.title')).startsWith('(1 DUE)'));
-ok('Due bar has Open in X link(s) to x.com intent',(await ev(`[...document.querySelectorAll('#due-list a')].filter(a=>a.href.startsWith('https://x.com/intent/post?text=')).length`))>=1);
-ok('card flagged due',await ev(`document.querySelector('.slot[data-key="${K2}"]').classList.contains('due')&&document.querySelector('.slot[data-key="${K2}"] .sched-tag').innerText.includes('DUE NOW')`));
-await shot('dashboard_due_now.png',1440,900,false);
-await ev(`document.querySelector('#due-list button:last-child').click()`);await sleep(400);
-ok('Mark posted clears Due now',await ev(`document.getElementById('due-bar').hidden&&!window.__dash.dueOf('${K2}')`));
-// ---- 30 s timer: becomes due without reload
-const K3='2026-10-31__overview';
-const nowPT=await ev(`window.__dash.ptNow()`);
-const d=new Date(Date.UTC(+nowPT.slice(0,4),+nowPT.slice(5,7)-1,+nowPT.slice(8,10),+nowPT.slice(11,13),+nowPT.slice(14,16)+1));
-const when=d.toISOString().slice(0,16);
-await ev(`(()=>{const s=document.querySelector('.slot[data-key="${K3}"]');const cb=s.querySelector('input.ap');cb.checked=true;cb.dispatchEvent(new Event('change',{bubbles:true}));const d=s.querySelector('input.pdate');d.value='${when}';d.dispatchEvent(new Event('change',{bubbles:true}))})()`);
-ok('post date ~1 min ahead (PT '+when+') not yet due',await ev(`!window.__dash.dueOf('${K3}')`));
-t0=Date.now();ok('30 s timer flips it to Due now without any reload',await waitFor(`!document.getElementById('due-bar').hidden`,110000),Math.round((Date.now()-t0)/1000)+' s');
-await ev(`document.querySelector('#due-list button:last-child').click()`);
+const p=await ev(`(()=>{const o=window.__dash.load('${K}');return JSON.stringify({p:o.posted,u:o.postUrl,c:(o.comments||[]).map(c=>c.text)})})()`);
+ok('Posted + link + comment persisted across reload + re-decrypt',p===JSON.stringify({p:true,u:X1,c:['Persisted test comment']}),p);
+ok('UI reflects persisted state; placeholder request persisted',await ev(`(()=>{const s=${slot(K)};return s.querySelector('input.pst').checked&&s.querySelector('input.purl').value==='${X1}'&&s.classList.contains('posted')&&window.__dash.requests().length===1})()`));
+ok('history merge: 12 cards (data.json days + history.json), Load older hidden (no older days yet)',await ev(`document.querySelectorAll('.slot').length===12&&document.getElementById('more-older').hidden`));
+await ev(`localStorage.removeItem('acme-dash:v1:__requests')`);
 // ---- remember me
 await ev(`localStorage.removeItem('acme-pages-key')`);await go(BASE);await unlock(PW,true);await waitFor(`!!window.__dash`);
 ok('remember me ON stores key (not the password)',(await ev(`localStorage.getItem('acme-pages-key')`)||'').length>20&&!(await ev(`JSON.stringify(localStorage)`)).includes(PW));

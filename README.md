@@ -14,17 +14,22 @@ ever posted automatically (test mode).
   localStorage; the dashboard's **Lock** button forgets it.
 
 ## What works after unlocking
-Cards on top, expanded posts below, per-post **Open in X**, **Copy full thread**, **Export comments**.
-Because the site is static, **Approved, Post Date, status and comments are saved in each person's own browser
-(localStorage)**. Use **Export comments** to share them. While the tab is open it checks every 30 s: approved cards whose
-Post Date (Pacific time) has passed show a red **Due now** bar with Open in X buttons. It never posts anything.
+Everything in the dashboard: header filter chips (Posted, Not posted yet, Requested, Needs changes, ...), rolling history with **Load older**,
+**Posted** checkbox + X link box, cards on top and expanded posts below, per-post **Open in X**, **Copy full thread**, **Generate new Post**,
+**Request adjustment**, **Export comments**. Because the site is static, **Posted links, status, comments and requests are saved in each
+person's own browser (localStorage)**. Use **Export comments** to share them. It never posts anything.
+
+**Generate new Post** works in *copy mode* by default (builds the request text to paste to the ACME Content Creator agent in Grok Bot, plus a
+"Requested – waiting for agent" placeholder). Live mode: set `RELAY_BASE` (and `RELAY_TOKEN`) when building; they are written into the dashboard
+HTML before encryption, so the token exists only inside the encrypted payload (anyone who knows the password can read it from their browser, so
+use a token that can do nothing but queue requests). API contract: see `../dashboard/README.md`.
 
 ## Rebuild (re-encrypt after the dashboard changes)
 The source dashboard lives outside this repo (`../dashboard/acme-post-dashboard.html`, built by `../dashboard/build.py`).
 
 ```bash
 pip install cryptography            # once
-PAGES_PASSWORD='<the shared password>' ./build_pages.sh [path/to/acme-post-dashboard.html]
+PAGES_PASSWORD='<the shared password>' [RELAY_BASE=https://... RELAY_TOKEN=...] ./build_pages.sh [path/to/acme-post-dashboard.html]
 git add index.html && git commit -m "Re-encrypt dashboard" && git push
 ```
 `PAGES_PASSWORD` is read from the environment at build time only. Re-running with a new password (or the same one)
@@ -34,7 +39,7 @@ generates a fresh random salt and IV. Changing the password invalidates old "rem
 ```bash
 PAGES_PASSWORD='<the shared password>' node tests/browser_test.js   # needs google-chrome and node >= 22
 ```
-Covers wrong/right password, thread expansion, localStorage persistence across reload, Due now (past date and the 30 s timer),
+Covers wrong/right password, thread expansion, Posted + link validation and persistence across reload, chips, Generate panel and request placeholder,
 remember me, lock. It writes screenshots outside the repo (`../dashboard-pages-shots/`).
 
 ## Deploy
