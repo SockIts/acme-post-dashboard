@@ -24,14 +24,19 @@ await send('Emulation.setDeviceMetricsOverride',{width:1280,height:1000,deviceSc
 await send('Page.navigate',{url:URL_});await sleep(2500);
 ok('served under real Pages origin',(await ev('location.origin'))==='https://sockits.github.io');
 await ev(`document.querySelector('#pw').value=${JSON.stringify(PW)};document.querySelector('#rem').checked=false;document.querySelector('#f').requestSubmit()`);
-ok('unlocked (dashboard decrypted)',await waitFor("!!document.querySelector('#tracker')",90000));
+ok('unlocked (dashboard decrypted)',await waitFor("!!document.querySelector('#trk-dr')&&!!window.__dash",90000));
 ok('connection indicator is Live (CORS ok from Pages origin)',await waitFor("document.getElementById('conn').textContent==='Live'",20000));
 ok('no "New posts available" banner (version matches)',await ev("document.getElementById('newbar').hidden"));
-ok('tracker shows empty state',await ev("document.querySelectorAll('#trk-list .trk-it').length===0"));
+ok('v8 layout: no hero/stats/actions; nav has Generate, Request adjustment, Tracker, Queue',await ev("!document.querySelector('.hero,#stats,#sec-actions')&&['gen-btn','adj-btn','trk-btn','nav-q'].every(i=>document.getElementById(i).closest('#nav'))"));
+ok('no leftover test items in the tracker',await ev("![...document.querySelectorAll('#trk-list .trk-it')].some(i=>/test e2e/.test(i.textContent))"));
+const REAL=await ev("JSON.stringify(Object.keys(META).filter(k=>window.__dash.schedActive(k)).map(k=>[k,window.__dash.schedOf(k).state,window.__dash.schedOf(k).dueAt]))");console.log('real queued cards (read only):',REAL);
+ok('real scheduled cards render as black placeholders in the slider',await ev("Object.keys(META).filter(k=>window.__dash.schedActive(k)&&!window.__dash.postedOf(k)).every(k=>{const s=document.querySelector(`.slot[data-key='${k}']`);return !s||(s.classList.contains('is-sched')&&getComputedStyle(s).backgroundColor==='rgb(0, 0, 0)')})"));
+await ev("document.getElementById('trk-btn').click()");await sleep(400);
+ok('Tracker nav button opens the right drawer',await ev("!document.getElementById('trk-dr').hidden"));
 await ev("document.getElementById('gen-btn').click()");
 await ev("document.getElementById('gen-notes').value='test e2e request';document.getElementById('gen-by').value='e2e';document.getElementById('gen-go').click()");
-ok('request appears in tracker as Queued with the 4-hour text',await waitFor("(()=>{const i=document.querySelector('#trk-list .trk-it');return i&&i.dataset.status==='queued'&&i.textContent.includes('Queued – will be picked up at the next check (about every 4 hours)')&&i.textContent.includes('test e2e request')})()",15000));
-const rid=await ev("document.querySelector('#trk-list .trk-it').dataset.rid");
+ok('request appears in tracker as Queued with the 4-hour text',await waitFor("(()=>{const i=[...document.querySelectorAll('#trk-list .trk-it')].find(x=>x.textContent.includes('test e2e request'));return i&&i.dataset.status==='queued'&&i.textContent.includes('Queued – will be picked up at the next check (about every 4 hours)')&&i.textContent.includes('test e2e request')})()",15000));
+const rid=await ev("[...document.querySelectorAll('#trk-list .trk-it')].find(i=>i.textContent.includes('test e2e request')).dataset.rid");
 const pend_=agent('pending');
 ok('agent sees the request via /agent/pending',pend_.requests.some(r=>r.id===rid&&r.notes==='test e2e request'&&r.by==='e2e'));
 agent('status',rid,'working','test working');
@@ -39,7 +44,7 @@ ok('tracker -> Working',await waitFor(`document.querySelector('#trk-list .trk-it
 agent('status',rid,'failed','test');agent('update','TEST feed item','Posted by the e2e test','failed');agent('heartbeat');
 ok('tracker -> Failed with message "test"',await waitFor(`(()=>{const i=document.querySelector('#trk-list .trk-it[data-rid="${rid}"]');return i.dataset.status==='failed'&&i.textContent.includes('test')})()`,15000));
 ok('recent updates feed shows the update',await waitFor("document.getElementById('trk-upd').textContent.includes('TEST feed item')",15000));
-ok('counts: Failed 1',await ev("document.querySelector('#trk-counts [data-s=failed] b').textContent")==='1');
+ok('counts: Failed >= 1',+await ev("document.querySelector('#trk-counts [data-s=failed] b').textContent")>=1);await ev("window.__dash.setTrk(false)");
 ok('last check set, next check ~4h later (PT)',await ev("/PT$/.test(document.getElementById('trk-last').textContent)&&/PT$/.test(document.getElementById('trk-next').textContent)"));
 // v7: real UI Approve & schedule path (submitSched) against the live relay, using a "test" card id only
 ok('build has relay config (no "relay not configured" fallback)',await ev("/^https:\\/\\//.test(window.__dash.config.API_BASE)&&window.__dash.config.API_TOKEN.length>=32"));
@@ -52,13 +57,29 @@ ok('UI submitSched (Approve & schedule) succeeds, no relay-not-configured toast'
 const sp=agent('schedule-pending').requests.filter(r=>r.cardId===TK);
 ok('relay received the schedule request (agent schedule-pending)',sp.length===1&&sp[0].posts.length>0&&!!sp[0].dueAt);
 await ev("window.__dash.setQueue(true)");
-ok('bottom queue lists the test card as Queued, highlighted as next',await waitFor(`(()=>{const r=document.querySelector('#pq-list .pq-it[data-key="${TK}"]');return r&&r.classList.contains('s-queued')})()`,15000));
+ok('bottom queue lists the test card as a Queued card',await waitFor(`(()=>{const r=document.querySelector('#pq-list .pq-it[data-key="${TK}"]');return r&&r.classList.contains('s-queued')})()`,15000));
 await ev("window.confirm=()=>true");await ev(`document.querySelector('#pq-list .pq-it[data-key="${TK}"] .pq-cx').click()`);
 ok('Cancel from queue queues an unschedule',await waitFor(`(()=>{const c=window.__dash.shared().cards['${TK}'];return c&&c.schedule&&['cancel_queued','cancelled'].includes(c.schedule.state)})()`,15000));
 await ev("window.__dash.setQueue(false)");
 const r2=agent('reset-test');ok('reset-test cleaned up test ids',!!r2,JSON.stringify(r2).slice(0,80));
-await ev("document.getElementById('tracker').scrollIntoView()");await sleep(400);
+await ev("window.__dash.poll()");await sleep(1500);
+ok('test card gone from relay state after reset-test',await ev("!window.__dash.shared().cards['test-ui__sched']"));
 fs.mkdirSync(SH,{recursive:true});
-const sc=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(SH,'tracker_live.png'),Buffer.from(sc.result.data,'base64'));
+for(let i=0;i<10;i++){const n=await ev("(()=>{const b=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Remove'&&/test e2e/.test(b.closest('div[class]').parentElement.textContent));if(b){b.click();return 1}return 0})()");if(!n)break;await sleep(200)}
+
+const shot=async n=>{const sc=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(SH,n),Buffer.from(sc.result.data,'base64'));console.log('shot',n)};
+for(const [w,h,tag,mob] of [[1440,900,'desktop',false],[390,844,'mobile',true]]){
+  await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:mob?2:1,mobile:mob});await sleep(600);
+  await ev("window.scrollTo(0,0);window.__dash.setQueue(false);window.__dash.setTrk(false);window.__dash.closeCard();window.__dash.scrollToToday(false)");await sleep(400);
+  await ev("(()=>{const p=document.querySelector('.slot.is-sched');if(p){const b=p.closest('.board');b.scrollLeft=Math.max(0,p.offsetLeft-b.offsetLeft-40);p.scrollIntoView({block:'center'})}})()");await sleep(600);
+  await shot('v7_'+tag+'_main.png');
+  const k=await ev("(()=>{const p=document.querySelector('.slot.is-sched');return p?p.dataset.key:''})()");
+  if(k){await ev(`document.querySelector('.slot[data-key="${k}"] .sph').click()`);await sleep(300);ok(tag+': clicking the black card opens the queue and highlights it',await ev(`!document.getElementById('pq-body').hidden&&document.querySelector('.pq-it.hl')&&document.querySelector('.pq-it.hl').dataset.key===${JSON.stringify(k)}`))}
+  else{await ev("window.__dash.setQueue(true)");}
+  await sleep(500);await shot('v7_'+tag+'_queue.png');
+  await ev("window.__dash.setQueue(false)");await ev("window.__dash.setTrk(true)");await sleep(500);await shot('v7_'+tag+'_tracker.png');await ev("window.__dash.setTrk(false)");
+  if(mob){await ev("document.getElementById('navm').click()");await sleep(300);ok('mobile: nav buttons collapse into a menu that opens',await ev("document.getElementById('nav').classList.contains('open')&&document.getElementById('gen-btn').offsetParent!==null"));await shot('v7_mobile_menu.png');await ev("document.getElementById('navm').click()")}
+  ok(tag+': no horizontal page overflow',await ev("document.documentElement.scrollWidth<=window.innerWidth+1"));
+}
 console.log(fails?'\nFAILED':'\nALL PASSED');ch.kill();process.exit(fails?1:0);
 })().catch(e=>{console.log('ERR',e);process.exit(2)});
