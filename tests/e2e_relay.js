@@ -41,6 +41,22 @@ ok('tracker -> Failed with message "test"',await waitFor(`(()=>{const i=document
 ok('recent updates feed shows the update',await waitFor("document.getElementById('trk-upd').textContent.includes('TEST feed item')",15000));
 ok('counts: Failed 1',await ev("document.querySelector('#trk-counts [data-s=failed] b').textContent")==='1');
 ok('last check set, next check ~4h later (PT)',await ev("/PT$/.test(document.getElementById('trk-last').textContent)&&/PT$/.test(document.getElementById('trk-next').textContent)"));
+// v7: real UI Approve & schedule path (submitSched) against the live relay, using a "test" card id only
+ok('build has relay config (no "relay not configured" fallback)',await ev("/^https:\\/\\//.test(window.__dash.config.API_BASE)&&window.__dash.config.API_TOKEN.length>=32"));
+const TK='test-ui__sched';
+const wall=await ev(`(()=>{const d=new Date(Date.now()+6*3600e3),f=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(d),g=t=>f.find(x=>x.type===t).value;return g('year')+'-'+g('month')+'-'+g('day')+'T'+g('hour')+':'+g('minute')})()`);
+await ev(`(()=>{const k0=Object.keys(META)[0];META['${TK}']=JSON.parse(JSON.stringify(META[k0]));META['${TK}'].topic='TEST e2e schedule';return 1})()`);
+await ev(`(()=>{const k0=Object.keys(META)[0],c=document.getElementById('c-'+k0).cloneNode(true);c.id='c-${TK}';c.dataset.key='${TK}';c.hidden=true;c.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));document.body.appendChild(c);return 1})()`);
+const sres=await ev(`window.__dash.submitSched('${TK}',false,'${wall}')`);const toastTxt=await ev("document.getElementById('toast').textContent");
+ok('UI submitSched (Approve & schedule) succeeds, no relay-not-configured toast',sres===true&&!/relay not configured/.test(toastTxt),toastTxt);
+const sp=agent('schedule-pending').requests.filter(r=>r.cardId===TK);
+ok('relay received the schedule request (agent schedule-pending)',sp.length===1&&sp[0].posts.length>0&&!!sp[0].dueAt);
+await ev("window.__dash.setQueue(true)");
+ok('bottom queue lists the test card as Queued, highlighted as next',await waitFor(`(()=>{const r=document.querySelector('#pq-list .pq-it[data-key="${TK}"]');return r&&r.classList.contains('s-queued')})()`,15000));
+await ev("window.confirm=()=>true");await ev(`document.querySelector('#pq-list .pq-it[data-key="${TK}"] .pq-cx').click()`);
+ok('Cancel from queue queues an unschedule',await waitFor(`(()=>{const c=window.__dash.shared().cards['${TK}'];return c&&c.schedule&&['cancel_queued','cancelled'].includes(c.schedule.state)})()`,15000));
+await ev("window.__dash.setQueue(false)");
+const r2=agent('reset-test');ok('reset-test cleaned up test ids',!!r2,JSON.stringify(r2).slice(0,80));
 await ev("document.getElementById('tracker').scrollIntoView()");await sleep(400);
 fs.mkdirSync(SH,{recursive:true});
 const sc=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(SH,'tracker_live.png'),Buffer.from(sc.result.data,'base64'));

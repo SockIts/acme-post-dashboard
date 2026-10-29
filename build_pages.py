@@ -42,6 +42,8 @@ rep('<div class="hdr-r">', '<div class="hdr-r"><button class="btn" id="lock-btn"
 # live relay (optional): the token is injected here, so it only ever exists inside the ENCRYPTED payload
 RB = os.environ.get('RELAY_BASE', '').strip().rstrip('/')
 RT = os.environ.get('RELAY_TOKEN', '').strip()
+if os.environ.get('NO_RELAY') != '1' and (not RB.startswith('https://') or len(RT) < 32):
+    sys.exit('ERROR: relay config missing/invalid (RELAY_BASE/RELAY_TOKEN). Use ./build_pages.sh (auto-loads it) or --no-relay for test builds only.')
 rep("API_BASE:'',API_TOKEN:''", "API_BASE:" + json.dumps(RB) + ",API_TOKEN:" + json.dumps(RT))
 # Lock button + cross-tab sync
 rep("window.__dash={", """window.addEventListener('storage',e=>{if(e.key&&e.key.indexOf(PFX)===0)refresh()});
@@ -63,6 +65,8 @@ blob = json.dumps({'v': 1, 'kdf': 'PBKDF2-SHA256', 'iter': ITER, 'alg': 'AES-256
 page = open(os.path.join(HERE, 'login_template.html'), encoding='utf-8').read()
 assert '/*BLOB*/' in page
 page = page.replace('/*BLOB*/', blob)
+page = page.replace('<head>', '<head>\n<meta name="acme-build" content="' + ('relay' if RB else 'no-relay-test') + '">', 1)
+assert 'name="acme-build"' in page
 out = os.path.join(HERE, 'index.html')
 open(out, 'w', encoding='utf-8').write(page)
 print(f'dashboard {len(raw)/1e6:.1f} MB -> gzip {len(gz)/1e6:.1f} MB -> index.html {os.path.getsize(out)/1e6:.1f} MB (PBKDF2-SHA256 x{ITER:,}, AES-256-GCM)')
