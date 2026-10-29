@@ -13,6 +13,9 @@ ever posted automatically (test mode).
 * "Remember me" is off by default. If ticked, the derived key (not the password) is kept in this browser's
   localStorage; the dashboard's **Lock** button forgets it.
 
+## Look
+The password screen and the unlocked dashboard use the acmeprotocol.com / explorer style (paper palette, Arial + monospace labels, dashed dividers, ink buttons, dark variant with a header toggle). `build_pages.py` patches the dashboard HTML: it swaps the local-mode note for the static-site note, adds the **Test mode** bar above the header and the **Lock** button in the header (`#lock-btn`), and clears `API_BASE`/`API_TOKEN` unless `RELAY_BASE`/`RELAY_TOKEN` are set. `login_template.html` holds the unlock page.
+
 ## What works after unlocking
 Everything in the dashboard: header filter chips (Posted, Not posted yet, Requested, Needs changes, ...), rolling history with **Load older**,
 **Posted** checkbox + X link box, cards on top and expanded posts below, per-post **Open in X**, **Copy full thread**, **Generate new Post**,

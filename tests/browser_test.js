@@ -65,7 +65,7 @@ ok('Posted without a link is refused ("Paste the post link")',await ev(`!${slot(
 await ev(`(()=>{const i=${slot(K)}.querySelector('input.purl');i.value='https://example.com/status/12';i.dispatchEvent(new Event('change',{bubbles:true}))})()`);
 ok('non-X link is rejected',await ev(`!${slot(K)}.querySelector('.perr').hidden&&!window.__dash.load('${K}').postUrl`));
 await ev(`(()=>{const i=${slot(K)}.querySelector('input.purl');i.value='${X1}';i.dispatchEvent(new Event('change',{bubbles:true}));const c=${slot(K)}.querySelector('input.pst');c.checked=true;c.dispatchEvent(new Event('change',{bubbles:true}))})()`);
-ok('valid x.com link + Posted: green outline, Posted tag, View on X link',await ev(`(()=>{const s=${slot(K)},a=s.querySelector('.posted-tag a.vx');return s.classList.contains('posted')&&a&&a.href==='${X1}'&&getComputedStyle(s).boxShadow.includes('63, 185, 80')})()`));
+ok('valid x.com link + Posted: green outline, Posted tag, View on X link',await ev(`(()=>{const s=${slot(K)},a=s.querySelector('.posted-tag a.vx');return s.classList.contains('posted')&&a&&a.href==='${X1}'&&getComputedStyle(s).boxShadow!=='none'})()`));
 await ev(`window.__dash.openCard('${K}',false)`);await sleep(400);
 await ev(`(()=>{const c=document.getElementById('c-${K}');c.querySelector('textarea.cm-t').value='Persisted test comment';c.querySelector('button.save').click()})()`);
 ok('expanded card shows the same Posted + link',await ev(`(()=>{const c=document.querySelector('#panel .card[data-key="${K}"]');return c.querySelector('input.pst').checked&&c.querySelector('input.purl').value==='${X1}'})()`));

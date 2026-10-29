@@ -32,13 +32,13 @@ def rep(old, new, count=1):
     html = html.replace(old, new)
 
 NOTE = 'Static test site: Posted links, comments and requests are saved in this browser only. Use Export comments to share.'
-html = re.sub(r'<div class="localnote">.*?</div></header>',
-              lambda m: '<div class="localnote" id="static-note"><b>' + NOTE + '</b> Drafts only: nothing is posted automatically. After posting on X, tick Posted and paste the link. <button class="btn sm" id="lock-btn" type="button">Lock</button></div></header>',
+html = re.sub(r'<div class="localnote">.*?</div>',
+              lambda m: '<div class="localnote" id="static-note"><b>' + NOTE + '</b> Drafts only: nothing is posted automatically. After posting on X, tick Posted and paste the link.</div>',
               html, count=1, flags=re.S)
 assert 'id="static-note"' in html
 rep('<body>\n<header class="top">', '<body>\n<div class="testbar">Test mode: drafts only. Nothing is posted automatically. After posting on X, tick Posted and paste the link.</div>\n<header class="top">')
-rep('</style>', '''.testbar{background:#3a2c0b;border-bottom:2px solid #e3b341;color:#ffd666;font-size:13.5px;font-weight:600;padding:8px 20px;text-align:center}
-</style>''')
+# Lock button in the header (the .testbar / .btn styles already live in dashboard.css)
+rep('<div class="hdr-r">', '<div class="hdr-r"><button class="btn" id="lock-btn" type="button" title="Forget the saved key on this browser and return to the password screen">Lock</button>')
 # live relay (optional): the token is injected here, so it only ever exists inside the ENCRYPTED payload
 RB = os.environ.get('RELAY_BASE', '').strip().rstrip('/')
 RT = os.environ.get('RELAY_TOKEN', '').strip()
