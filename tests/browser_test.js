@@ -26,6 +26,7 @@ const K='2026-10-30__technical';
 // ---- login page + wrong password
 await go(BASE);
 ok('login page shown with test-mode banner',(await ev('document.querySelector(".testbar").innerText')).includes('Test mode: drafts only. Nothing is posted automatically.'));
+ok('login page is dark by default (first visit)',await ev("document.documentElement.classList.contains('dark')&&getComputedStyle(document.body).backgroundColor==='rgb(17, 19, 21)'"));
 ok('remember me is OFF by default',await ev('document.querySelector("#rem").checked===false'));
 ok('no dashboard content before unlock',await ev('!document.querySelector(".card,.slot,#sec-cards")'));
 await shot('login.png',1000,700,false);
@@ -36,6 +37,7 @@ await shot('login_wrong_password.png',1000,700,false);
 // ---- correct password
 t0=Date.now();await unlock(PW,false);
 ok('correct password unlocks dashboard (11 MB payload)',await waitFor(`!!window.__dash&&document.querySelectorAll('.slot').length>=12`),(Date.now()-t0)+' ms');
+ok('dashboard is dark by default after unlock',await ev("document.documentElement.classList.contains('dark')&&getComputedStyle(document.body).backgroundColor==='rgb(17, 19, 21)'"));
 ok('12 cards rendered',(await ev(`document.querySelectorAll('.slot').length`))===12);
 ok('"Test mode" banner on dashboard',(await ev('document.querySelector(".testbar").innerText')).includes('Nothing is posted automatically'));
 ok('new Drafts-only wording present',(await ev('document.querySelector("#static-note").innerText')).includes('Drafts only: nothing is posted automatically. After posting on X, tick Posted and paste the link.'));

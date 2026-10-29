@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script>var h=document.documentElement;h.classList.add('dark');try{if(localStorage.getItem('acme-dash:v1:__theme')==='light')h.classList.remove('dark')}catch(e){}</script>
 <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
 <title>ACME Content Dashboard · sign in</title>
 <style>
 :root{--bg:#f7f6f2;--panel:#fcfbf8;--ink:#242722;--mu:#6b6f66;--line:#d8d9d2;--sage:#47816c;--bad:#a8362f}
-@media(prefers-color-scheme:dark){:root{--bg:#111315;--panel:#171a1d;--ink:#f5f7f8;--mu:#9aa3a8;--line:#2c3236;--sage:#7fc3a8;--bad:#ff8a80}}
+html.dark{--bg:#111315;--panel:#171a1d;--ink:#f5f7f8;--mu:#adb5bb;--line:#303438;--sage:#9ebdab;--bad:#ff8f84;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:15px/1.5 Arial,Helvetica,sans-serif;display:flex;flex-direction:column}
-.testbar{background:var(--ink);color:var(--bg);font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em;padding:8px 20px;text-align:center}
+.testbar{background:var(--panel);border-bottom:1px dashed var(--line);color:var(--mu);font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.4px;padding:6px 20px;text-align:center}
 .wrap{flex:1;display:grid;place-items:center;padding:24px}
 .box{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:2px;padding:28px}
 .eyebrow{font:11px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin:0 0 10px}

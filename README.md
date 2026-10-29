@@ -14,7 +14,7 @@ ever posted automatically (test mode).
   localStorage; the dashboard's **Lock** button forgets it.
 
 ## Look
-The password screen and the unlocked dashboard use the acmeprotocol.com / explorer style (paper palette, Arial + monospace labels, dashed dividers, ink buttons, dark variant with a header toggle). `build_pages.py` patches the dashboard HTML: it swaps the local-mode note for the static-site note, adds the **Test mode** bar above the header and the **Lock** button in the header (`#lock-btn`), and clears `API_BASE`/`API_TOKEN` unless `RELAY_BASE`/`RELAY_TOKEN` are set. `login_template.html` holds the unlock page.
+The password screen and the unlocked dashboard use the acmeprotocol.com / explorer style (paper palette, Arial + monospace labels, dashed dividers, ink buttons, dark variant with a header toggle; dark is the default on first visit and the login page reads the same saved choice). `build_pages.py` patches the dashboard HTML: it swaps the local-mode note for the static-site note, adds the **Test mode** bar above the header and the **Lock** button in the header (`#lock-btn`), and clears `API_BASE`/`API_TOKEN` unless `RELAY_BASE`/`RELAY_TOKEN` are set. `login_template.html` holds the unlock page.
 
 ## What works after unlocking
 Everything in the dashboard: header filter chips (Posted, Not posted yet, Requested, Needs changes, ...), rolling history with **Load older**,
