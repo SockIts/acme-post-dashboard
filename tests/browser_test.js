@@ -38,12 +38,12 @@ await shot('login_wrong_password.png',1000,700,false);
 t0=Date.now();await unlock(PW,false);
 ok('correct password unlocks dashboard (11 MB payload)',await waitFor(`!!window.__dash&&document.querySelectorAll('.slot').length>=12`),(Date.now()-t0)+' ms');
 ok('dashboard is dark by default after unlock',await ev("document.documentElement.classList.contains('dark')&&getComputedStyle(document.body).backgroundColor==='rgb(17, 19, 21)'"));
-ok('12 cards rendered',(await ev(`document.querySelectorAll('.slot').length`))===12);
+ok('15 cards rendered',(await ev(`document.querySelectorAll('.slot').length`))===15);
 ok('"Test mode" banner on dashboard',(await ev('document.querySelector(".testbar").innerText')).includes('Nothing is posted automatically'));
 ok('new Drafts-only wording present',(await ev('document.querySelector("#static-note").innerText')).includes('Drafts only: nothing is posted automatically. After posting on X, tick Posted and paste the link.'));
 ok('static-site note visible (exact text)',(await ev('document.querySelector("#static-note").innerText')).includes('Static test site: Posted links, comments and requests are saved in this browser only. Use Export comments to share.'));
 ok('no scheduling / Due now / Approved checkbox / date pickers left',await ev(`!document.querySelector('input.ap,input.pdate,#due-bar,.sched-tag')&&!/Due now|Post Date|scheduling not active/i.test(document.body.innerText)`));
-ok('header chips (All + 11) + Generate button + Offline pill present',await ev(`!!document.getElementById('gen-btn')&&document.querySelectorAll('.fchip').length===12&&document.getElementById('conn').textContent==='Offline (copy mode)'`));
+ok('header chips (All + 13) + Generate button + Offline pill present',await ev(`!!document.getElementById('gen-btn')&&document.querySelectorAll('.fchip').length===14&&document.getElementById('conn').textContent==='Offline (copy mode)'`));
 ok('all images loaded (none broken)',await ev(`[...document.images].filter(i=>i.id!=='lb-img').every(i=>i.complete&&i.naturalWidth>0)`),await ev('(document.images.length-1)+" images (lightbox placeholder excluded)"'));
 ok('localStorage remember key not stored (remember off)',(await ev(`localStorage.getItem('acme-pages-key')`))===null);
 await shot('dashboard_unlocked.png',1440,900,false);
@@ -71,7 +71,7 @@ ok('valid x.com link + Posted: green outline, Posted tag, View on X link',await 
 await ev(`window.__dash.openCard('${K}',false)`);await sleep(400);
 await ev(`(()=>{const c=document.getElementById('c-${K}');c.querySelector('textarea.cm-t').value='Persisted test comment';c.querySelector('button.save').click()})()`);
 ok('expanded card shows the same Posted + link',await ev(`(()=>{const c=document.querySelector('#panel .card[data-key="${K}"]');return c.querySelector('input.pst').checked&&c.querySelector('input.purl').value==='${X1}'})()`));
-ok('Posted chip filters to the posted card; counts match',await ev(`(()=>{document.querySelector('.fchip[data-g="state"][data-v="posted"]').click();const v=document.querySelectorAll('.slot:not(.hid)').length,n=document.querySelector('.fchip[data-g="state"][data-v="posted"] b').textContent;document.getElementById('chip-all').click();return v===1&&n==='1'&&document.querySelectorAll('.slot:not(.hid)').length===12})()`));
+ok('Posted chip filters to the posted card; counts match',await ev(`(()=>{document.querySelector('.fchip[data-g="state"][data-v="posted"]').click();const v=document.querySelectorAll('.slot:not(.hid)').length,n=document.querySelector('.fchip[data-g="state"][data-v="posted"] b').textContent;document.getElementById('chip-all').click();return v===1&&n==='1'&&document.querySelectorAll('.slot:not(.hid)').length===15})()`));
 await ev(`document.getElementById('gen-btn').click()`);
 await ev(`(()=>{const n=document.getElementById('gen-notes');n.value='pages test notes';n.dispatchEvent(new Event('input',{bubbles:true}));document.getElementById('gen-go').click()})()`);await sleep(400);
 const rq=await ev(`document.getElementById('gen-req').value`);
@@ -85,12 +85,12 @@ await unlock(PW,false);await waitFor(`!!window.__dash`);
 const p=await ev(`(()=>{const o=window.__dash.load('${K}');return JSON.stringify({p:o.posted,u:o.postUrl,c:(o.comments||[]).map(c=>c.text)})})()`);
 ok('Posted + link + comment persisted across reload + re-decrypt',p===JSON.stringify({p:true,u:X1,c:['Persisted test comment']}),p);
 ok('UI reflects persisted state; placeholder request persisted',await ev(`(()=>{const s=${slot(K)};return s.querySelector('input.pst').checked&&s.querySelector('input.purl').value==='${X1}'&&s.classList.contains('posted')&&window.__dash.requests().length===1})()`));
-ok('history merge: 12 cards (data.json days + history.json), Load older hidden (no older days yet)',await ev(`document.querySelectorAll('.slot').length===12&&document.getElementById('more-older').hidden`));
+ok('history merge: 15 cards (data.json days + history.json), Load older hidden (no older days yet)',await ev(`document.querySelectorAll('.slot').length===15&&document.getElementById('more-older').hidden`));
 await ev(`localStorage.removeItem('acme-dash:v1:__requests')`);
 // ---- remember me
 await ev(`localStorage.removeItem('acme-pages-key')`);await go(BASE);await unlock(PW,true);await waitFor(`!!window.__dash`);
 ok('remember me ON stores key (not the password)',(await ev(`localStorage.getItem('acme-pages-key')`)||'').length>20&&!(await ev(`JSON.stringify(localStorage)`)).includes(PW));
-await go(BASE);ok('auto-unlock when remembered',await waitFor(`!!window.__dash&&document.querySelectorAll('.slot').length===12`));
+await go(BASE);ok('auto-unlock when remembered',await waitFor(`!!window.__dash&&document.querySelectorAll('.slot').length===15`));
 await ev(`document.getElementById('lock-btn').click()`);await sleep(1800);
 ok('Lock forgets key and returns to login',await waitFor(`!!document.querySelector('#pw')`)&&(await ev(`localStorage.getItem('acme-pages-key')`))===null);
 // mobile shot
