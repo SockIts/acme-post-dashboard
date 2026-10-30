@@ -12,3 +12,6 @@ shots/
 *.png
 *.gif
 !tests/**/*.png
+
+!sched/
+!sched/**
