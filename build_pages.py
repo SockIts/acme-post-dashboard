@@ -35,8 +35,8 @@ NOTE = 'Static test site: Posted links, comments and requests are saved in this 
 html = re.sub(r'<div class="localnote">.*?</div>',
               lambda m: '<div class="localnote" id="static-note"><b>' + NOTE + '</b> Drafts only: nothing is posted automatically. After posting on X, tick Posted and paste the link.</div>',
               html, count=1, flags=re.S)
-assert 'id="static-note"' in html
-rep('<body>\n<header class="top">', '<body>\n<div class="testbar">Test mode: drafts only. Nothing is posted automatically. After posting on X, tick Posted and paste the link.</div>\n<header class="top">')
+# v15: the dashboard no longer has a localnote box; the static note is optional
+# v15: no Test mode banner on the dashboard (the footer carries the drafts-only note)
 # Lock button in the header (the .testbar / .btn styles already live in dashboard.css)
 rep('<div class="hdr-r">', '<div class="hdr-r"><button class="btn" id="lock-btn" type="button" title="Forget the saved key on this browser and return to the password screen">Lock</button>')
 # live relay (optional): the token is injected here, so it only ever exists inside the ENCRYPTED payload
